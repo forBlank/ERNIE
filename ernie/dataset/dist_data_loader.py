@@ -175,6 +175,7 @@ class MMDataloader(paddle.io.DataLoader):
         collate_fn=None,
         num_workers=0,
         use_buffer_reader=True,
+        reader_buffer_size = 2,
         prefetch_factor=2,
         use_shared_memory=True,
         timeout=0,
@@ -207,6 +208,7 @@ class MMDataloader(paddle.io.DataLoader):
             lambda x: x,  # collate_fn,
             num_workers,
             use_buffer_reader,
+            reader_buffer_size,
             prefetch_factor,
             use_shared_memory,
             timeout,
@@ -332,9 +334,10 @@ class MMDataloader(paddle.io.DataLoader):
             cur_token_type_ids = np.concatenate(buffer["token_type_ids"])
             cur_image_type_ids = np.array(buffer["image_type_ids"])
             cur_grid_thw = np.concatenate(buffer["grid_thw"], axis=0)
-            cur_position_ids = np.array(
-                merge_rope_3d_position(buffer["position_ids"])[:-1]
-            )
+            # cur_position_ids = np.array(
+            #     merge_rope_3d_position(buffer["position_ids"])[:-1]
+            # )
+            cur_position_ids = np.concatenate(buffer["position_ids"], axis=0)
 
         return {
             "input_ids_batch": input_ids_batch,

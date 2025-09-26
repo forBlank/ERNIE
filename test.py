@@ -2,6 +2,7 @@ import paddle
 import paddle.nn.functional as F
 import numpy as np
 import sys
+import os.path as osp
 
 paddle.set_printoptions(linewidth=1000)
 
@@ -117,14 +118,259 @@ def flashmask_to_densemask(startend_row_indices, dtype, causal=True):
 
 #     print(m)
 
-print("float32")
-print(paddle.to_tensor([1.23, 4.56])._md5sum())
+idx = None
 
-print("bfloat16")
-print(paddle.to_tensor([1.23, 4.56]).astype('bfloat16')._md5sum())
+def tensor_md5sum(tensor):
+    """
+    计算张量(tensor)的MD5哈希值
+    
+    参数:
+        tensor: numpy.ndarray 或 torch.Tensor
+            输入的张量数据
+    
+    返回:
+        str: 输入张量的MD5哈希值(十六进制字符串)
+    
+    异常:
+        TypeError: 如果输入不是numpy.ndarray或torch.Tensor
+    """
+    # 参数校验
+    if not isinstance(tensor, (np.ndarray, paddle.Tensor)):
+        raise TypeError("输入必须是numpy.ndarray或torch.Tensor")
+    
+    # 如果是PyTorch张量，先转换为numpy数组
+    if isinstance(tensor, paddle.Tensor):
+        if tensor.dtype == paddle.bfloat16:
+            tensor = tensor.astype("float32")
+    
+    return tensor._md5sum()
 
-print("bfloat16 -> float32")
-print(paddle.to_tensor([1.23, 4.56]).astype('bfloat16').astype("float32")._md5sum())
+def test_md5():
 
-print("bfloat16 -> float32 -> bfloat16")
-print(paddle.to_tensor([1.23, 4.56]).astype('bfloat16').astype("float32").astype("bfloat16")._md5sum())
+    print("float32")
+    print(paddle.to_tensor([1.23, 4.56])._md5sum())
+
+    print("bfloat16")
+    print(paddle.to_tensor([1.23, 4.56]).astype('bfloat16')._md5sum())
+    print(tensor_md5sum(paddle.to_tensor([1.23, 4.56]).astype('bfloat16')))
+
+    print("bfloat16 -> float32")
+    print(paddle.to_tensor([1.23, 4.56]).astype('bfloat16').astype("float32")._md5sum())
+    print(tensor_md5sum(paddle.to_tensor([1.23, 4.56]).astype('bfloat16').astype("float32")))
+
+    print("bfloat16 -> float32 -> bfloat16")
+    print(paddle.to_tensor([1.23, 4.56]).astype('bfloat16').astype("float32").astype("bfloat16")._md5sum())
+    print(tensor_md5sum(paddle.to_tensor([1.23, 4.56]).astype('bfloat16').astype("float32").astype("bfloat16")))
+
+    bf16_torch_tensor = np.load("/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-VL-PT-SFT/bf16_tensor.npy")
+    bf16_torch_tensor = paddle.to_tensor(bf16_torch_tensor)
+    print(bf16_torch_tensor._md5sum())
+    bf16_torch_tensor = bf16_torch_tensor.astype("bfloat16")
+    print(bf16_torch_tensor._md5sum())
+
+    bf16_torch_emebdding = np.load("/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-VL-PT-SFT/bf16_embedding.npy")
+    bf16_torch_emebdding = paddle.to_tensor(bf16_torch_emebdding)
+    print(bf16_torch_emebdding._md5sum())
+    bf16_torch_emebdding = bf16_torch_emebdding.astype("bfloat16")
+    print(bf16_torch_emebdding._md5sum())
+    bf16_torch_emebdding = bf16_torch_emebdding.astype("bfloat16").astype("float32")
+    print(bf16_torch_emebdding._md5sum())
+
+
+def evaluate_tensor(swift_input, ernie_input):
+
+    torch_input = np.load(osp.join("/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-VL-PT-SFT", swift_input+".npy"))
+
+    paddle_input = np.load(osp.join("/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE", ernie_input+".npy"))
+    
+    print(f"\n\n{swift_input} Diff")
+
+    torch_input = paddle.to_tensor(torch_input)
+    print("torch tensor md5 = ", tensor_md5sum(torch_input))
+
+    paddle_input = paddle.to_tensor(paddle_input)
+    print("paddle tensor md5 = ", tensor_md5sum(paddle_input))
+
+    torch_mean = paddle.mean(torch_input)
+    paddle_mean = paddle.mean(paddle_input)
+    mean_diff = (torch_mean - paddle_mean) / torch_mean
+    print(f"mean diff = {mean_diff.item()*100} % ")
+    mean_diff = (torch_mean - paddle_mean) / paddle_mean
+    print(f"mean diff = {mean_diff.item()*100} % ")
+
+    torch_std = paddle.std(torch_input)
+    paddle_std = paddle.std(paddle_input)
+    std_diff = (torch_std - paddle_std) / torch_std
+    print(f"std diff = {std_diff.item()*100} % ")
+    std_diff = (torch_std - paddle_std) / paddle_std
+    print(f"std diff = {std_diff.item()*100} % ")
+
+    denominator = paddle.maximum(paddle.abs(torch_input) + 1e-8, paddle.abs(paddle_input) + 1e-8)
+
+    zero_torch = ~(paddle.abs(torch_input) > 0)
+    zero_paddle = ~(paddle.abs(paddle_input) > 0)
+    zero_mask = paddle.logical_or(zero_torch, zero_paddle)
+    zero_num = paddle.sum(zero_mask)
+
+    diff = paddle.abs(torch_input - paddle_input)
+    relative_zero_diff = diff[zero_mask]
+    relative_diff = diff[~zero_mask] / denominator[~zero_mask]
+    
+    topk_num=1
+    max_diff, max_diff_idx = paddle.topk(relative_diff.flatten(), k=topk_num)
+    if zero_num:
+        max_zero_diff, max_zero_diff_idx = paddle.topk(relative_zero_diff.flatten(), k=topk_num)
+
+    for i in range(topk_num):
+        print(f"max relative element diff = {max_diff[i].item()*100} % ")
+        print(f"corresponding torch element = {torch_input[~zero_mask].flatten()[max_diff_idx[i]].item()}")
+        print(f"corresponding paddle element = {paddle_input[~zero_mask].flatten()[max_diff_idx[i]].item()}")
+
+        if idx = None:
+            idx = 
+
+        if zero_num:
+            print(f"max element diff with zero = {max_zero_diff[i].item()}")
+            print(f"corresponding torch element = {torch_input[zero_mask].flatten()[max_zero_diff_idx[i]].item()}")
+            print(f"corresponding paddle element = {paddle_input[zero_mask].flatten()[max_zero_diff_idx[i]].item()}")
+
+    # max_diff = paddle.max(diff)
+    # max_diff_idx = paddle.argmax(diff)
+    # print(f"max relative element diff = {max_diff.item()*100} % ")
+    # print(f"corresponding torch element = {torch_input.flatten()[max_diff_idx].item()}")
+    # print(f"corresponding paddle element = {paddle_input.flatten()[max_diff_idx].item()}")
+
+    
+    # relative_torch_diff = paddle.abs(diff / (torch_input+1e-8))
+    # max_diff = paddle.max(relative_torch_diff)
+    # max_diff_idx = paddle.argmax(relative_torch_diff)
+    # print(f"max relative element diff with torch = {max_diff.item()*100} % ")
+    # print(f"corresponding diff element = {relative_torch_diff.flatten()[max_diff_idx].item()}")
+    # print(f"corresponding torch element = {torch_input.flatten()[max_diff_idx].item()}")
+    # print(f"corresponding paddle element = {paddle_input.flatten()[max_diff_idx].item()}")
+
+    # relative_paddle_diff = paddle.abs(diff / (paddle_input+1e-8))
+    # max_diff = paddle.max(relative_paddle_diff)
+    # max_diff_idx = paddle.argmax(relative_paddle_diff)
+    # print(f"max relative element diff with paddle = {max_diff.item()*100} % ")
+    # print(f"corresponding diff element = {relative_paddle_diff.flatten()[max_diff_idx].item()}")
+    # print(f"corresponding torch element = {torch_input.flatten()[max_diff_idx].item()}")
+    # print(f"corresponding paddle element = {paddle_input.flatten()[max_diff_idx].item()}")
+
+
+def compare_tensor(swift_input, ernie_input, path="both"):
+
+    if path == "both":
+        torch_input = np.load(osp.join("/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-VL-PT-SFT", swift_input+".npy"))
+
+        paddle_input = np.load(osp.join("/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE", ernie_input+".npy"))
+    elif path == "ernie":
+        torch_input = np.load(osp.join("/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE", swift_input+".npy"))
+
+        paddle_input = np.load(osp.join("/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE", ernie_input+".npy"))
+    elif path == "swift":
+        torch_input = np.load(osp.join("/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-VL-PT-SFT", swift_input+".npy"))
+
+        paddle_input = np.load(osp.join("/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-VL-PT-SFT", ernie_input+".npy"))
+    
+    if path == "both":
+        print(f"\n\nSwift:{swift_input} - Ernie:{ernie_input} Diff")
+    else:
+        print(f"\n\n{path}:{swift_input} - {path}:{ernie_input} Diff")
+
+    torch_input = paddle.to_tensor(torch_input)
+    print("tensor md5 = ", tensor_md5sum(torch_input))
+
+    paddle_input = paddle.to_tensor(paddle_input)
+    print("tensor md5 = ", tensor_md5sum(paddle_input))
+
+    # torch_mean = paddle.mean(torch_input)
+    # paddle_mean = paddle.mean(paddle_input)
+    # mean_diff = (torch_mean - paddle_mean) / torch_mean
+    # print(f"mean diff = {mean_diff.item()*100} % ")
+    # mean_diff = (torch_mean - paddle_mean) / paddle_mean
+    # print(f"mean diff = {mean_diff.item()*100} % ")
+
+    # torch_std = paddle.std(torch_input)
+    # paddle_std = paddle.std(paddle_input)
+    # std_diff = (torch_std - paddle_std) / torch_std
+    # print(f"std diff = {std_diff.item()*100} % ")
+    # std_diff = (torch_std - paddle_std) / paddle_std
+    # print(f"std diff = {std_diff.item()*100} % ")
+
+    denominator = paddle.maximum(paddle.abs(torch_input) + 1e-8, paddle.abs(paddle_input) + 1e-8)
+
+    zero_torch = ~(paddle.abs(torch_input) > 0)
+    zero_paddle = ~(paddle.abs(paddle_input) > 0)
+    zero_mask = paddle.logical_or(zero_torch, zero_paddle)
+    zero_num = paddle.sum(zero_mask)
+
+    diff = paddle.abs(torch_input - paddle_input)
+    relative_zero_diff = diff[zero_mask]
+    relative_diff = diff[~zero_mask] / denominator[~zero_mask]
+    
+    topk_num=1
+    max_diff, max_diff_idx = paddle.topk(relative_diff.flatten(), k=topk_num)
+    if zero_num:
+        max_zero_diff, max_zero_diff_idx = paddle.topk(relative_zero_diff.flatten(), k=topk_num)
+
+    for i in range(topk_num):
+        print(f"max relative element diff = {max_diff[i].item()*100} % ")
+        print(f"corresponding element = {torch_input[~zero_mask].flatten()[max_diff_idx[i]].item()}")
+        print(f"corresponding element = {paddle_input[~zero_mask].flatten()[max_diff_idx[i]].item()}")
+
+        if zero_num:
+            print(f"max element diff with zero = {max_zero_diff[i].item()}")
+            print(f"corresponding element = {torch_input[zero_mask].flatten()[max_zero_diff_idx[i]].item()}")
+            print(f"corresponding element = {paddle_input[zero_mask].flatten()[max_zero_diff_idx[i]].item()}")
+
+
+def test_interpolate():
+
+    # image = paddle.to_tensor([[[[1, 2, 3], [4, 5, 6], [7, 8, 9]]]]).astype("float32")
+    # print(image)
+
+    # image = F.interpolate(
+    #     image,
+    #     size=(2, 4),
+    #     mode="bilinear",
+    #     align_corners=False,
+    # )
+
+    # print(image)
+
+    img_hw = [(10, 86), (10, 82), (10, 88), (10, 84)]
+    siglip_pos_embedding = [f"position_embeddings_h{h}_w{w}" for h, w in img_hw]
+    siglip_image_embedding = [f"image_embeddings_h{h}_w{w}" for h, w in img_hw]
+    siglip_image_embedding_add_pos = [f"image_embeddings_add_pos_h{h}_w{w}" for h, w in img_hw]
+
+    siglip_embedding = siglip_pos_embedding + siglip_image_embedding + siglip_image_embedding_add_pos
+
+    tensor_name_list = ["vit_embedding", "siglip_rope_emb_cos", "siglip_rope_emb_sin", "siglip_attn_q", "siglip_attn_k", "siglip_attn_v"]
+
+    # for tensor_name in siglip_embedding:
+    #     evaluate_tensor(tensor_name, tensor_name)
+
+    compare_tensor(siglip_pos_embedding[-1], siglip_image_embedding[-1], "ernie")
+    compare_tensor(siglip_pos_embedding[-1], siglip_image_embedding[-1], "swift")
+    compare_tensor(siglip_pos_embedding[-1], siglip_pos_embedding[-1], "both")
+    compare_tensor(siglip_image_embedding[-1], siglip_image_embedding[-1], "both")
+    compare_tensor(siglip_image_embedding_add_pos[-1], siglip_image_embedding_add_pos[-1], "both")
+
+    
+
+def add_diff_reprodcution():
+
+    swift_path = "/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-VL-PT-SFT"
+    ernie_path = "/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE"
+
+    img_hw = [(10, 86), (10, 82), (10, 88), (10, 84)]
+    siglip_pos_embedding = [f"position_embeddings_h{h}_w{w}" for h, w in img_hw]
+    siglip_image_embedding = [f"image_embeddings_h{h}_w{w}" for h, w in img_hw]
+    siglip_image_embedding_add_pos = [f"image_embeddings_add_pos_h{h}_w{w}" for h, w in img_hw]
+
+
+
+
+if __name__ == "__main__":
+    test_interpolate()

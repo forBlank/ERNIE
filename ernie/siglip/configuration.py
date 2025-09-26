@@ -17,13 +17,14 @@
 from paddleformers.transformers.configuration_utils import PretrainedConfig
 
 __all__ = [
-    "SiglipVisionConfig",
+    "PPOCRVisionConfig",
 ]
 
 
-class SiglipVisionConfig(PretrainedConfig):
+class PPOCRVisionConfig(PretrainedConfig):
 
-    model_type = "Siglip_vision_transformer"
+    model_type = "ppocrvl"
+    base_config_key = "vision_config"
 
     def __init__(
         self,
@@ -34,7 +35,7 @@ class SiglipVisionConfig(PretrainedConfig):
         num_channels=3,
         image_size=224,
         patch_size=14,
-        hidden_act="gelu_tanh",
+        hidden_act="gelu_pytorch_tanh",
         layer_norm_eps=1e-6,
         attention_dropout=0.0,
         spatial_merge_size=2,

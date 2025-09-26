@@ -56,7 +56,7 @@ from .modeling_moe_vl_pp import (
     exchange_pp_imgs_with_thw,
     shard_data_in_pp_group,
 )
-from .siglip.modeling import SiglipVisionConfig
+from .siglip.modeling import PPOCRVisionConfig
 from .siglip.modeling_pp import SiglipVisionModelPipe
 from .modeling_ocr_ernie_pp import (
     RMSNormPipe,
@@ -594,7 +594,7 @@ class PPOCRVLForConditionalGenerationPipe(PipelinePretrainedModel, PipelineLayer
         config.tensor_parallel_degree = tensor_parallel_degree
         config.tensor_parallel_rank = tensor_parallel_rank
 
-        if isinstance(config.vision_config, SiglipVisionConfig):
+        if isinstance(config.vision_config, PPOCRVisionConfig):
             logger.info("variable resolution vision model")
             config.vision_config.variable_resolution = True
         else:

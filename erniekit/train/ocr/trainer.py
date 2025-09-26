@@ -521,15 +521,12 @@ class SFTTrainer(PretrainingTrainer):
                 position_ids = inputs["position_ids"]
                 position_ids = position_ids.squeeze(0).transpose([1, 0]).unsqueeze(1)
                 inputs["position_ids"] = position_ids
+                pixel_values = inputs["pixel_values"]
 
-                save_dict_to_files(inputs)
-
-                inputs = load_npz_to_paddle()
-                inputs["input_ids"][inputs["input_ids"] == 101304] = 100295
-                inputs["inbatch_pack_offset"] = inputs["cumulative_seqlens_q"].unsqueeze(0)
-
-                for key in inputs:
-                    print(f"input key: {key}, value: {inputs[key]._md5sum()}")
+                # inputs = load_npz_to_paddle()
+                # inputs["input_ids"][inputs["input_ids"] == 101304] = 100295
+                # inputs["inbatch_pack_offset"] = inputs["cumulative_seqlens_q"].unsqueeze(0)
+                # inputs["pixel_values"] = pixel_values
 
                 if self.args.use_hybrid_parallel and self.args.sep_parallel_degree > 1:
                     inputs = split_inputs_sequence_dim(inputs)
@@ -974,7 +971,7 @@ class SFTTrainer(PretrainingTrainer):
             self.model.to(paddle.CUDAPinnedPlace())
 
 
-def save_dict_to_files(dictionary, txt_path="/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE/input.txt", npz_path="/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE/input.npz"):
+def save_dict_to_files(dictionary, txt_path="/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE/alignment/ernie/input.txt", npz_path="/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE/alignment/ernie/input.npz"):
     """
     将字典保存到txt和npz文件，自动处理tensor类型
     
@@ -1021,7 +1018,7 @@ def save_dict_to_files(dictionary, txt_path="/root/paddlejob/workspace/env_run/l
     print(f"字典已保存到 {txt_path} 和 {npz_path}")
 
 
-def load_npz_to_paddle(file_path="/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-VL-PT-SFT/input.npz"):
+def load_npz_to_paddle(file_path="/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE/alignment/swift/input.npz"):
     data = np.load(file_path, allow_pickle=True)
     paddle_data = {}
     for key, value in data.items():

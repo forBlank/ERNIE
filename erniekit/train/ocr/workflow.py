@@ -58,6 +58,68 @@ from data_processor.image_preprocessor.image_preprocessor_siglip import (
     SiglipImageProcessor,
 )
 
+import builtins
+from copy import deepcopy
+
+def tensor_md5sum(tensor):
+    """
+    计算张量(tensor)的MD5哈希值
+    
+    参数:
+        tensor: numpy.ndarray 或 torch.Tensor
+            输入的张量数据
+    
+    返回:
+        str: 输入张量的MD5哈希值(十六进制字符串)
+    
+    异常:
+        TypeError: 如果输入不是numpy.ndarray或torch.Tensor
+    """
+    # 参数校验
+
+    tensor = tensor.clone()
+
+    if not isinstance(tensor, (np.ndarray, paddle.Tensor)):
+        raise TypeError("输入必须是numpy.ndarray或torch.Tensor")
+    
+    # 如果是PyTorch张量，先转换为numpy数组
+    if isinstance(tensor, paddle.Tensor):
+        md5sum = tensor._md5sum()
+        f32_md5sum = None
+        if tensor.dtype == paddle.bfloat16:
+            f32_md5sum = tensor.astype("float32")._md5sum()
+    
+    return {"md5sum": md5sum, "f32_md5sum": f32_md5sum}
+
+setattr(builtins, 'md5', tensor_md5sum)
+
+def save_npy(tensor=None, name=None, path="/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE/alignment/ernie"):
+
+    tensor = tensor.clone()
+
+    print(tensor_md5sum(tensor))
+    # 参数校验
+    if not isinstance(tensor, (np.ndarray, paddle.Tensor)):
+        raise TypeError("输入必须是numpy.ndarray或torch.Tensor")
+    
+    # 如果是PyTorch张量，先转换为numpy数组
+    if isinstance(tensor, paddle.Tensor):
+        if tensor.dtype == paddle.bfloat16:
+            tensor = tensor.astype("float32")
+        tensor = tensor.detach().cpu().numpy()
+
+    np.save(os.path.join(path, name+".npy"), tensor)
+    print(f'save {name}.npy')
+
+setattr(builtins, 'npy', save_npy)
+
+def load_npy(tensor=None, name=None, path="/root/paddlejob/workspace/env_run/laipeiwen/code4git/ERNIE/alignment/swift"):
+
+    swift_tensor = np.load(os.path.join(path, name+".npy"))
+    swift_tensor = paddle.to_tensor(swift_tensor, dtype=tensor.dtype, place=tensor.place, stop_gradient=tensor.stop_gradient)
+    return swift_tensor
+
+setattr(builtins, 'swift', load_npy)
 
 def get_resume_checkpoint_path(config):
     """
@@ -483,7 +545,7 @@ def run_ocr_vl_sft(
                 model_args.model_name_or_path,
                 config=cfg,
             )
-    logger.info(f"vision_model: {model.vision_model}")
+    logger.info(f"vision_model: {model.visual.vision_model}")
 
     if model.config.head_dim is None:
         del model.config.head_dim
@@ -510,9 +572,9 @@ def run_ocr_vl_sft(
         logger.info("Freeze model vision module")
         model.freeze_vision()
     # Stop gradient for parameters which not be updated in training.
-    for p in model.vision_model.head.parameters():
+    for p in model.visual.vision_model.head.parameters():
         p.stop_gradient = True
-    model.vision_model.embeddings.packing_position_embedding.weight.stop_gradient = True
+    model.visual.vision_model.embeddings.packing_position_embedding.weight.stop_gradient = True
     
     # data
     logger.info("loading data...")
