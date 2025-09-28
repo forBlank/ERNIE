@@ -182,6 +182,8 @@ class MMDataloader(paddle.io.DataLoader):
         worker_init_fn=None,
         persistent_workers=False,
         multimodal_multiround_ratio=0.3,
+        need_slice=True,
+        need_shift_one=True,
     ):
 
         # dummy_dataset is a placeholder, not used
@@ -240,6 +242,8 @@ class MMDataloader(paddle.io.DataLoader):
         self.rng = random.Random(2048)
         self.multimodal_multiround_ratio = multimodal_multiround_ratio
         self.need_multiround = self.rng.random() < self.multimodal_multiround_ratio
+        self.need_slice = need_slice
+        self.need_shift_one = need_shift_one
 
     def __len__(self):
         return super().__len__()
@@ -279,16 +283,22 @@ class MMDataloader(paddle.io.DataLoader):
         # Helper function to slice arrays
         def slice_array(arr, remove_first, area, index):
             this_arr = arr[area[index][0] : area[index][1]]
+            if not self.need_slice:
+                return this_arr
             if remove_first and index == 0:
                 return this_arr
             if not remove_first and index == len(area) - 1:
                 return this_arr
             return this_arr[1:] if remove_first else this_arr[:-1]
 
-        cur_input_ids = np.concatenate(buffer["input_ids"])[:-1]
-        cur_labels = np.concatenate(buffer["labels"])[1:]
-        buffer["input_ids"][-1] = buffer["input_ids"][-1][:-1]
-        buffer["position_ids"][-1] = buffer["position_ids"][-1][:-1]
+        if self.need_shift_one:
+            cur_input_ids = np.concatenate(buffer["input_ids"])[:-1]
+            cur_labels = np.concatenate(buffer["labels"])[1:]
+            buffer["input_ids"][-1] = buffer["input_ids"][-1][:-1]
+            buffer["position_ids"][-1] = buffer["position_ids"][-1][:-1]
+        else:
+            cur_input_ids = np.concatenate(buffer["input_ids"])
+            cur_labels = np.concatenate(buffer["labels"])
 
         # Apply the slicing consistently
         if len(buffer["input_ids"]) > 1:
