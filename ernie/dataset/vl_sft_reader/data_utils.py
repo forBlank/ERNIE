@@ -313,8 +313,8 @@ def merge_fn_group_batch(
                     ret[k][ret[k] == pad_value] = 0
 
     assert (
-        pad_to_max_seqlen == batch[0]["input_ids"].shape[0]
-    ), f"pad_to_max_seqlen {pad_to_max_seqlen} != input_ids shape {batch[0]['input_ids'].shape}"
+        pad_to_max_seqlen == ret["input_ids"].shape[1]
+    ), f"pad_to_max_seqlen {pad_to_max_seqlen} != input_ids shape {ret['input_ids'].shape}"
 
     inbatch_pack_offset = [0]
     if not need_multiround:

@@ -183,7 +183,6 @@ class MMDataloader(paddle.io.DataLoader):
         persistent_workers=False,
         multimodal_multiround_ratio=0.3,
         need_slice=True,
-        need_shift_one=True,
     ):
 
         # dummy_dataset is a placeholder, not used
@@ -243,7 +242,6 @@ class MMDataloader(paddle.io.DataLoader):
         self.multimodal_multiround_ratio = multimodal_multiround_ratio
         self.need_multiround = self.rng.random() < self.multimodal_multiround_ratio
         self.need_slice = need_slice
-        self.need_shift_one = need_shift_one
 
     def __len__(self):
         return super().__len__()
@@ -291,7 +289,7 @@ class MMDataloader(paddle.io.DataLoader):
                 return this_arr
             return this_arr[1:] if remove_first else this_arr[:-1]
 
-        if self.need_shift_one:
+        if self.need_slice:
             cur_input_ids = np.concatenate(buffer["input_ids"])[:-1]
             cur_labels = np.concatenate(buffer["labels"])[1:]
             buffer["input_ids"][-1] = buffer["input_ids"][-1][:-1]

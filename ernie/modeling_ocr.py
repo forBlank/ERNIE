@@ -751,15 +751,15 @@ class PPOCRVLForConditionalGeneration(Ernie4_5PretrainedModel, GenerationMixin):
             if pixel_values is not None:
                 
                 # normalize image
-                if self.image_preprocess is not None:
-                    assert pixel_values.dtype == paddle.uint8, pixel_values.dtype
-                    pixel_values = self.image_preprocess.rescale_factor * pixel_values.astype("float32")
-                    pixel_values = (
-                        pixel_values - self.image_preprocess.image_mean_tensor
-                    ) / self.image_preprocess.image_std_tensor
-                    pixel_values = pixel_values.astype("bfloat16")
-                else:
-                    assert pixel_values.dtype == paddle.bfloat16, pixel_values.dtype
+                # if self.image_preprocess is not None:
+                #     assert pixel_values.dtype == paddle.uint8, pixel_values.dtype
+                #     pixel_values = self.image_preprocess.rescale_factor * pixel_values.astype("float32")
+                #     pixel_values = (
+                #         pixel_values - self.image_preprocess.image_mean_tensor
+                #     ) / self.image_preprocess.image_std_tensor
+                #     pixel_values = pixel_values.astype("bfloat16")
+                # else:
+                #     assert pixel_values.dtype == paddle.bfloat16, pixel_values.dtype
 
                 pixel_values = pixel_values.astype(inputs_embeds.dtype)
                 pixel_values = pixel_values.unsqueeze(0)

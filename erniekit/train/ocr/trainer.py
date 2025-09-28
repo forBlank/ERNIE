@@ -156,7 +156,6 @@ class SFTTrainer(PretrainingTrainer):
                 prefetch_factor=self.args.prefetch_factor,
                 multimodal_multiround_ratio=0.0,
                 need_slice=False,
-                need_shift_one=False,
             )
         
 
@@ -524,11 +523,12 @@ class SFTTrainer(PretrainingTrainer):
                 position_ids = position_ids.squeeze(0).transpose([1, 0]).unsqueeze(1)
                 inputs["position_ids"] = position_ids
 
-                save_dict_to_files(inputs)  
+                # save_dict_to_files(inputs)  
 
-                swfit_inputs = load_npz_to_paddle()
-                swfit_inputs["input_ids"][swfit_inputs["input_ids"] == 101304] = 100295
-                swfit_inputs["inbatch_pack_offset"] = swfit_inputs["cumulative_seqlens_q"].unsqueeze(0)
+                # swfit_inputs = load_npz_to_paddle()
+                # swfit_inputs["input_ids"][swfit_inputs["input_ids"] == 101304] = 100295
+                # swfit_inputs["inbatch_pack_offset"] = swfit_inputs["cumulative_seqlens_q"].unsqueeze(0)
+                # inputs = swfit_inputs
                 
                 if self.args.use_hybrid_parallel and self.args.sep_parallel_degree > 1:
                     inputs = split_inputs_sequence_dim(inputs)

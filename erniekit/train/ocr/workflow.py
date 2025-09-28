@@ -465,25 +465,18 @@ def run_ocr_vl_sft(
     ]
     cfg.max_text_id = cfg.im_patch_id
 
-    image_preprocess = SiglipImageProcessor.from_pretrained(
-        model_args.model_name_or_path
-    )
-    image_preprocess.image_mean_tensor = paddle.to_tensor(
-        image_preprocess.image_mean, dtype="float32"
-    ).reshape([1, 3, 1, 1])
-    image_preprocess.image_std_tensor = paddle.to_tensor(
-        image_preprocess.image_std, dtype="float32"
-    ).reshape([1, 3, 1, 1])
-    image_preprocess.rescale_factor = paddle.to_tensor(
-        image_preprocess.rescale_factor, dtype="float32"
-    )
-    # image_preprocess.image_mean_tensor = image_preprocess.image_mean_tensor.squeeze(
-    #     [-2, -1]
-    # ).repeat_interleave(cfg.vision_config.patch_size**2 * 1, -1)
-    # image_preprocess.image_std_tensor = image_preprocess.image_std_tensor.squeeze(
-    #     [-2, -1]
-    # ).repeat_interleave(cfg.vision_config.patch_size**2 * 1, -1)
-
+    # image_preprocess = SiglipImageProcessor.from_pretrained(
+    #     model_args.model_name_or_path
+    # )
+    # image_preprocess.image_mean_tensor = paddle.to_tensor(
+    #     image_preprocess.image_mean, dtype="float32"
+    # ).reshape([1, 3, 1, 1])
+    # image_preprocess.image_std_tensor = paddle.to_tensor(
+    #     image_preprocess.image_std, dtype="float32"
+    # ).reshape([1, 3, 1, 1])
+    # image_preprocess.rescale_factor = paddle.to_tensor(
+    #     image_preprocess.rescale_factor, dtype="float32"
+    # )
     cfg.use_flash_attention = model_args.use_flash_attention
     cfg.use_recompute_moe = model_args.use_recompute_moe
     cfg.recompute = finetuning_args.recompute
@@ -550,8 +543,8 @@ def run_ocr_vl_sft(
     if model.config.head_dim is None:
         del model.config.head_dim
 
-    if image_preprocess is not None and hasattr(model, "add_image_preprocess"):
-        model.add_image_preprocess(image_preprocess)
+    # if image_preprocess is not None and hasattr(model, "add_image_preprocess"):
+    #     model.add_image_preprocess(image_preprocess)
 
     cfg = model.config
     logger.info(f"using model type:{type(model)}")
@@ -744,10 +737,11 @@ def run_ocr_vl_sft(
     data_collator = partial(
         merge_fn_group_batch,
         tokenizer=tokenizer,
-        pad_to_max_seqlen=None,
+        pad_to_max_seqlen=data_args.max_seq_len,
         im_prefix_length=256,
         rng=random.Random(2024),
         combine_batch=1,
+        image_dtype="float32",
     )
 
     if model_args.lora:
