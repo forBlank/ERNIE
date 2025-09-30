@@ -61,10 +61,11 @@
             "args": [
                     "train", "examples/configs/ERNIE-4.5-0.3B/sft/run_ocr_sft_8k.yaml",
                     // "model_name_or_path=/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-SFT-Model-0913",
-                    "model_name_or_path=/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-SFT-Model-0913-pd",
-                    // "model_name_or_path=/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-Pretrain-Model-25026",
-                    "train_dataset_path=/root/paddlejob/workspace/env_run/laipeiwen/dataformat_transform/OCR/ocrv5_train_ernie_choose_sft_0808_mini.jsonl", "train_dataset_prob=1.0",
-                    "multimodal=true", "max_seq_len=1024", "use_flash_attention=True", "recompute=True",
+                    // "model_name_or_path=/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-SFT-Model-0913-pd",
+                    "model_name_or_path=/root/paddlejob/workspace/env_run/laipeiwen/PaddleOCR-PT-Model-25026-pd",
+                    // "train_dataset_path=/root/paddlejob/workspace/env_run/laipeiwen/dataformat_transform/OCR/ocrv5_train_ernie_choose_sft_0808_mini.jsonl", "train_dataset_prob=1.0",
+                    "train_dataset_path=/root/paddlejob/workspace/env_run/laipeiwen/sft0908_for_ernie_style_mini/ppocrvl_lhe_exp2_7_60w.jsonl,/root/paddlejob/workspace/env_run/laipeiwen/sft0908_for_ernie_style_mini/ocr_sft_0909.jsonl,/root/paddlejob/workspace/env_run/laipeiwen/sft0908_for_ernie_style_mini/table_filtered.jsonl", "train_dataset_prob=0.2204724409448819,0.3779527559055118,0.4015748031496063",
+                    "multimodal=true", "max_seq_len=16384", "use_flash_attention=True", "recompute=True", "gradient_accumulation_steps=2",
                     // "tensor_parallel_degree=1", "pipeline_parallel_degree=2",
                     // "pp_need_data=true", "pp_need_data_degree=2",
                     "overwrite_output_dir=1"

@@ -51,6 +51,7 @@ from paddleformers.utils.log import logger
 from .configuration_ocr import PPOCRVLConfig
 from .modeling_moe_vl_pp import inbatch_pack_offset_to_attn_mask_start_row_indices
 from .modeling_ocr_ernie import Ernie4_5Model, Ernie4_5PretrainedModel
+# from paddleformers.transformers.ernie4_5.modeling import Ernie4_5Model, Ernie4_5PretrainedModel
 from .siglip import SiglipVisionModel, PPOCRVisionConfig
 
 
@@ -146,6 +147,22 @@ class PPOCRVLForConditionalGeneration(Ernie4_5PretrainedModel, GenerationMixin):
     config_class = PPOCRVLConfig
     _no_split_modules = ["Ernie4_5DecoderLayer", "SiglipEncoderLayer"]
     base_model_prefix = ""
+    # transpose_weight_keys = [
+    #     "out_proj",
+    #     "q_proj",
+    #     "k_proj",
+    #     "v_proj",
+    #     "lm_head",
+    #     "gate_proj",
+    #     "up_proj",
+    #     "down_proj",
+    #     "o_proj",
+    #     "lm_head",
+    #     "linear_1",
+    #     "linear_2",
+    #     "fc",
+    #     "in_proj",
+    # ]
 
     def __init__(self, config):
         super().__init__(config)

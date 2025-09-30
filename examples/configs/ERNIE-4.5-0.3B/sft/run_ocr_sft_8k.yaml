@@ -29,6 +29,7 @@ do_train: True
 # do_eval: True
 distributed_dataloader: False
 dataloader_num_workers: 1
+prefetch_factor: 10
 batch_size: 1
 num_train_epochs: 1
 max_steps: 1000

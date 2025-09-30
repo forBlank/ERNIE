@@ -3,7 +3,12 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.txt
 
+alignment
+erniekit.egg-info
+erniekit_dist_log
 output
 demo_data/index-cache
 log
+ocr
