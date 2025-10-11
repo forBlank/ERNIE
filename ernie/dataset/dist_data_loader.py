@@ -170,6 +170,7 @@ class MMDataloader(paddle.io.DataLoader):
         return_list=True,
         batch_sampler=None,
         batch_size=1,
+        packing_size=-1,
         shuffle=False,
         drop_last=False,
         collate_fn=None,
@@ -221,6 +222,7 @@ class MMDataloader(paddle.io.DataLoader):
         self._sample_buffer = defaultdict(lambda: defaultdict(list))
         self._batch_buffer = defaultdict(list)
         self.batch_size = batch_size
+        self.packing_size = packing_size
         self.tokenizer = tokenizer
         self.eos_token = self.tokenizer.special_tokens_map.get("eos_token", "</s>")
         self.cls_token = self.tokenizer.special_tokens_map.get("cls_token", "<mask:0>")
@@ -399,6 +401,8 @@ class MMDataloader(paddle.io.DataLoader):
                 need_to_yield_sample = (
                     self._lens_rcd[src_id] + input_ids.shape[0]
                     > self.tokenizer.model_max_length
+                ) or (
+                    len(self._sample_buffer[src_id]["input_ids"]) == self.packing_size
                 )
 
                 if need_to_yield_sample:

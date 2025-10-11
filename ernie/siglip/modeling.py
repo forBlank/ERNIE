@@ -232,6 +232,7 @@ class SiglipAttention(nn.Layer):
                 v,
                 attention_mask,
                 cu_seqlens,
+                use_reentrant=self.config.recompute_use_reentrant,
             )
 
         else:
@@ -676,6 +677,7 @@ class SiglipEncoder(nn.Layer):
                     output_attentions=output_attentions,
                     cu_seqlens=attn_cu_seqlens,
                     rope_emb=rope_emb,
+                    use_reentrant=self.config.recompute_use_reentrant,
                 )
             else:
                 layer_outputs = encoder_layer(

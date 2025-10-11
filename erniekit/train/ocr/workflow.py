@@ -738,7 +738,8 @@ def run_ocr_vl_sft(
     data_collator = partial(
         merge_fn_group_batch,
         tokenizer=tokenizer,
-        pad_to_max_seqlen=data_args.max_seq_len,
+        # pad_to_max_seqlen=data_args.max_seq_len,
+        pad_to_max_seqlen=None,
         im_prefix_length=256,
         rng=random.Random(2024),
         combine_batch=1,

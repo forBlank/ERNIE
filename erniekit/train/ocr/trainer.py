@@ -156,6 +156,7 @@ class SFTTrainer(PretrainingTrainer):
                 prefetch_factor=self.args.prefetch_factor,
                 multimodal_multiround_ratio=0.0,
                 need_slice=False,
+                packing_size=4,
             )
         
 
@@ -522,6 +523,11 @@ class SFTTrainer(PretrainingTrainer):
                 position_ids = inputs["position_ids"]
                 position_ids = position_ids.squeeze(0).transpose([1, 0]).unsqueeze(1)
                 inputs["position_ids"] = position_ids
+
+                # if (step + 1) % args.gradient_accumulation_steps == 0:
+                #     print("step", (step + 1) // args.gradient_accumulation_steps)
+
+                # continue
 
                 # save_dict_to_files(inputs)  
 
