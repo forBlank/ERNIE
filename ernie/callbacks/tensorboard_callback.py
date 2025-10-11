@@ -224,18 +224,18 @@ class TensorBoardCallback(TrainerCallback):
             data_type = inputs and inputs.get("data_type")
             if data_type is not None:
                 data_type = data_type.tolist()[-1]
-                if data_type == DATATYPE_2_ID["mm"]:
-                    logs = {
-                        k.replace("train", "mm_train"): v
-                        for k, v in logs.items()
-                        if k.startswith("train")
-                    }
-                elif data_type == DATATYPE_2_ID["audio"]:
-                    logs = {
-                        k.replace("train", "audio_train"): v
-                        for k, v in logs.items()
-                        if k.startswith("train")
-                    }
+                # if data_type == DATATYPE_2_ID["mm"]:
+                #     logs = {
+                #         k.replace("train", "mm_train"): v
+                #         for k, v in logs.items()
+                #         if k.startswith("train")
+                #     }
+                # elif data_type == DATATYPE_2_ID["audio"]:
+                #     logs = {
+                #         k.replace("train", "audio_train"): v
+                #         for k, v in logs.items()
+                #         if k.startswith("train")
+                #     }
                 logs.update(data_type=data_type)
 
             for k, v in logs.items():
